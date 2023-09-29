@@ -5,6 +5,10 @@ import csv
 import matplotlib.pyplot as plt
 import sys
 
+NUMBER_OF_COLUMNS = 10 # Number of columns in input CSV
+COLUMN_CHROMOSOME = 3 
+COLUMN_SEGMENT_BEGIN = 4
+COLUMN_SEGMENT_END = 5
 
 def modify_delta(deltas, locus, direction):    
     if (locus in deltas):
@@ -14,28 +18,26 @@ def modify_delta(deltas, locus, direction):
 
 def calculate_deltas(row, required_chromosome, deltas):
     
-    direction_up = 1
-    direction_down = -1
+    DIRECTION_UP = 1
+    DIRECTION_DOWN = -1
 
-    if (len(row) == 10):
-        chromosome = int(row[3])
-        loc_beg = int(row[4])
-        loc_end = int(row[5])
+    if (len(row) == NUMBER_OF_COLUMNS):
+        chromosome = int(row[COLUMN_CHROMOSOME])
+        loc_beg = int(row[COLUMN_SEGMENT_BEGIN])
+        loc_end = int(row[COLUMN_SEGMENT_END])
         if (chromosome != required_chromosome): # TODO: process all in one go
             return
-        # print(loc_start, loc_end)
-        modify_delta(deltas, loc_beg, direction_up)    
-        modify_delta(deltas, loc_end, direction_down)
+        modify_delta(deltas, loc_beg, DIRECTION_UP)    
+        modify_delta(deltas, loc_end, DIRECTION_DOWN)
 
 def sum_deltas(deltas, result):
     number_of_matches_after_locus = 0
     for locus in sorted(deltas):
-        # print (locus, deltas[locus])
         number_of_matches_after_locus += deltas[locus]
         result[locus] = number_of_matches_after_locus
 
 def plot_x_y(x, y, average):
-    plt.xlabel("locus [MB]")
+    plt.xlabel("locus [Mb]")
     plt.ylabel("Number of matches")
     plt.title("Chromosome " + str(required_chromosome) + " average: " + str(int(average)))
     plt.plot(x, y)
@@ -78,7 +80,7 @@ description='''
 This program finds and shows pile-up regions in DNA test results. It analyses DNA match 
 segments data provided as CSV file downloaded from MyHeritage and counts DNA matches
 at particular loci. 
-Result can be printed as table of locis and number of matches after the loci (default)
+Result can be printed as table of locis and number of matches after the locus (default)
 or plotted.
 '''
 
