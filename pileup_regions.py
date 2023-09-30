@@ -10,6 +10,7 @@ COLUMN_CHROMOSOME = 3
 COLUMN_SEGMENT_BEGIN = 4
 COLUMN_SEGMENT_END = 5
 COLUMN_MATCH_NAME = 2
+COLUMN_CM = 8
 
 ITEM_RESULT = 0
 ITEM_UP = 1
@@ -17,29 +18,31 @@ ITEM_NAME_UP = 2
 ITEM_DOWN = 3
 ITEM_NAME_DOWN = 4
 
-def init_delta():
-    return [0, 0, [], 0, []]
+def init_delta(deltas, locus):
+    if (not locus in deltas):
+        deltas[locus] = [0, 0, [], 0, []]
 
 def modify_delta_up(deltas, locus, match_name):    
-    if (not locus in deltas):
-        deltas[locus] = init_delta()
-    deltas[locus][ITEM_UP]  += 1;
+    init_delta(deltas, locus)
+    deltas[locus][ITEM_UP]  += 1
     deltas[locus][ITEM_NAME_UP].append(match_name)
 
 def modify_delta_down(deltas, locus, match_name):    
-    if (not locus in deltas):
-        deltas[locus] = init_delta()
-    deltas[locus][ITEM_DOWN]  += 1;
+    init_delta(deltas, locus)
+    deltas[locus][ITEM_DOWN]  += 1
     deltas[locus][ITEM_NAME_DOWN].append(match_name)
 
-def calculate_deltas(row, required_chromosome, deltas):
+def calculate_deltas(row, required_chromosome, cm_limit, deltas):
     
     if (len(row) == NUMBER_OF_COLUMNS):
         match_name = row[COLUMN_MATCH_NAME]
         chromosome = int(row[COLUMN_CHROMOSOME])
+        centimorgans = float(row[COLUMN_CM])
         loc_beg = int(row[COLUMN_SEGMENT_BEGIN])
         loc_end = int(row[COLUMN_SEGMENT_END])
         if (chromosome != required_chromosome): # TODO: process all in one go
+            return
+        if (centimorgans < cm_limit):
             return
         modify_delta_up(deltas, loc_beg, match_name)    
         modify_delta_down(deltas, loc_end, match_name)
@@ -112,6 +115,7 @@ or plotted.
 parser = argparse.ArgumentParser(description=description)
 parser.add_argument('--file', dest='csv_file_path')
 parser.add_argument('--chromosome', dest='required_chromosome')
+parser.add_argument('--cm-limit', dest='cm_limit')
 parser.add_argument('--plot', dest='plot_result', action='store_true')
 parser.add_argument('--print-names', dest='print_names', action='store_true')
 
@@ -120,6 +124,11 @@ args = parser.parse_args()
 if (args.print_names and args.plot_result):
     print("Conflicting arguments --plot and --print-names", file=sys.stderr)
     exit() 
+
+cm_limit = 0
+if (args.cm_limit):
+    cm_limit = float(args.cm_limit)
+
 
 required_chromosome = int(args.required_chromosome)
 deltas = dict()
@@ -133,7 +142,7 @@ if (args.csv_file_path):
             if (header):
                 header = False
                 continue
-            calculate_deltas(row, required_chromosome, deltas)
+            calculate_deltas(row, required_chromosome, cm_limit, deltas)
 
 sum_deltas(deltas)
 
