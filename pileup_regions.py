@@ -84,6 +84,7 @@ Result can be printed as table of locis and number of matches after the locus (d
 or plotted.
 '''
 
+
 parser = argparse.ArgumentParser(description=description)
 parser.add_argument('--file', dest='csv_file_path')
 parser.add_argument('--chromosome', dest='required_chromosome')
@@ -99,7 +100,7 @@ deltas = dict()
 if (args.csv_file_path):
     print("reading csv file", args.csv_file_path, file=sys.stderr)
     header = True
-    with open(args.csv_file_path, newline='') as csvfile:
+    with open(args.csv_file_path, newline='', encoding='utf-8') as csvfile:
         csv_reader = csv.reader(csvfile, delimiter=',', quotechar='"')
         for row in csv_reader:            
             if (header):
