@@ -58,7 +58,6 @@ def plot_x_y(x, y, average):
     plt.ylabel("Number of matches")
     plt.title("Chromosome " + str(required_chromosome) + " average: " + str(int(average)))
     plt.plot(x, y)
-    plt.show()
 
 
 def plot_result(deltas, chromosome):
@@ -119,6 +118,7 @@ parser.add_argument('--chromosome', dest='required_chromosome')
 parser.add_argument('--cm-limit', dest='cm_limit')
 parser.add_argument('--plot', dest='plot_result', action='store_true')
 parser.add_argument('--print-names', dest='print_names', action='store_true')
+parser.add_argument('--save-picture', dest='save_picture')
 
 args = parser.parse_args()
 
@@ -147,8 +147,12 @@ if (args.csv_file_path):
 
 sum_deltas(deltas)
 
-if (args.plot_result):
+if (args.plot_result or args.save_picture):
     plot_result(deltas, required_chromosome)
+    if (args.save_picture):
+        plt.savefig(args.save_picture)
+    else:
+        plt.show()
 else:
     print_result(deltas, required_chromosome, args.print_names)
 
