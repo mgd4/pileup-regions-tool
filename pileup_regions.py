@@ -12,46 +12,47 @@ COLUMN_SEGMENT_END = 5
 COLUMN_MATCH_NAME = 2
 COLUMN_CM = 8
 
-ITEM_RESULT = 0
-ITEM_UP = 1
-ITEM_NAME_UP = 2
-ITEM_DOWN = 3
-ITEM_NAME_DOWN = 4
+ITEM_NUMBER_OF_MATCHES = 0
+ITEM_SEGMENT_BEGIN = 1
+ITEM_SEGMENT_BEGIN_NAMES = 2
+ITEM_SEGMENT_END = 3
+ITEM_SEGMENT_END_NAMES = 4
 
-def init_delta(deltas, locus):
-    if (not locus in deltas):
-        deltas[locus] = [0, 0, [], 0, []]
+def init_locus(segments, locus):
+    if (not locus in segments):
+        segments[locus] = [0, 0, [], 0, []]
 
-def modify_delta_up(deltas, locus, match_name):    
-    init_delta(deltas, locus)
-    deltas[locus][ITEM_UP]  += 1
-    deltas[locus][ITEM_NAME_UP].append(match_name)
+def register_segment_begin(segments, locus, match_name):    
+    init_locus(segments, locus)
+    segments[locus][ITEM_SEGMENT_BEGIN] += 1
+    segments[locus][ITEM_SEGMENT_BEGIN_NAMES].append(match_name)
 
-def modify_delta_down(deltas, locus, match_name):    
-    init_delta(deltas, locus)
-    deltas[locus][ITEM_DOWN]  += 1
-    deltas[locus][ITEM_NAME_DOWN].append(match_name)
+def register_segment_end(segments, locus, match_name):    
+    init_locus(segments, locus)
+    segments[locus][ITEM_SEGMENT_END] += 1
+    segments[locus][ITEM_SEGMENT_END_NAMES].append(match_name)
 
-def calculate_deltas(row, required_chromosome, cm_limit, deltas):
-    
-    if (len(row) == NUMBER_OF_COLUMNS):
-        match_name = row[COLUMN_MATCH_NAME]
-        chromosome = int(row[COLUMN_CHROMOSOME])
-        centimorgans = float(row[COLUMN_CM])
-        loc_beg = int(row[COLUMN_SEGMENT_BEGIN])
-        loc_end = int(row[COLUMN_SEGMENT_END])
-        if (chromosome != required_chromosome): # TODO: process all in one go
-            return
-        if (centimorgans < cm_limit):
-            return
-        modify_delta_up(deltas, loc_beg, match_name)    
-        modify_delta_down(deltas, loc_end, match_name)
+def register_segment(row, required_chromosome, cm_limit, segments):
+    if (len(row) != NUMBER_OF_COLUMNS):
+        return
+    match_name = row[COLUMN_MATCH_NAME]
+    chromosome = int(row[COLUMN_CHROMOSOME])
+    centimorgans = float(row[COLUMN_CM])
+    loc_beg = int(row[COLUMN_SEGMENT_BEGIN])
+    loc_end = int(row[COLUMN_SEGMENT_END])
+    if (chromosome != required_chromosome): # TODO: process all in one go
+        return
+    if (centimorgans < cm_limit):
+        return
+    register_segment_begin(segments, loc_beg, match_name)    
+    register_segment_end(segments, loc_end, match_name)
 
-def sum_deltas(deltas):
+def calculate_number_of_matches(segments):
     number_of_matches_after_locus = 0
-    for locus in sorted(deltas):
-        number_of_matches_after_locus += deltas[locus][ITEM_UP] - deltas[locus][ITEM_DOWN]
-        deltas[locus][ITEM_RESULT] = number_of_matches_after_locus
+    for locus in sorted(segments):
+        segment = segments[locus]
+        number_of_matches_after_locus += segment[ITEM_SEGMENT_BEGIN] - segment[ITEM_SEGMENT_END]
+        segment[ITEM_NUMBER_OF_MATCHES] = number_of_matches_after_locus
 
 def plot_x_y(x, y, average):
     plt.xlabel("locus [Mb]")
@@ -60,7 +61,7 @@ def plot_x_y(x, y, average):
     plt.plot(x, y)
 
 
-def plot_result(deltas, chromosome):
+def plot_result(segments, chromosome):
     x = []    
     y = []
     
@@ -71,7 +72,7 @@ def plot_result(deltas, chromosome):
     total_no_of_samples = 0
     sum_of_samples = 0
     
-    for locus in sorted(deltas):
+    for locus in sorted(segments):
         if (previous_locus > 0):    
             x.append(previous_locus / locus_scaling_factor)
             y.append(previous_result)
@@ -81,7 +82,7 @@ def plot_result(deltas, chromosome):
             total_no_of_samples += no_of_samples
             sum_of_samples += no_of_samples * previous_result
         previous_locus = locus
-        previous_result = deltas[locus][ITEM_RESULT]
+        previous_result = segments[locus][ITEM_NUMBER_OF_MATCHES]
     
     plot_x_y(x, y, sum_of_samples / total_no_of_samples)
 
@@ -92,13 +93,13 @@ def print_name_list(name_list, header):
             print("   ", name)
 
 
-def print_result(deltas, chromosome, print_names):
-    for locus in sorted(deltas):
-        print (str(chromosome) + ";" + str(locus) + ";" + str(deltas[locus][ITEM_RESULT]))
+def print_result(segments, chromosome, print_names):
+    for locus in sorted(segments):
+        print (str(chromosome) + ";" + str(locus) + ";" + str(segments[locus][ITEM_NUMBER_OF_MATCHES]))
         if (print_names):
-            print_name_list(deltas[locus][ITEM_NAME_UP], "Begin of match:")
-            print_name_list(deltas[locus][ITEM_NAME_DOWN], "End of match:")
-            # print (deltas[locus][ITEM_NAME_UP], ";", deltas[locus][ITEM_NAME_DOWN])
+            print_name_list(segments[locus][ITEM_SEGMENT_BEGIN_NAMES], "Begin of match:")
+            print_name_list(segments[locus][ITEM_SEGMENT_END_NAMES], "End of match:")
+            # print (segments[locus][ITEM_SEGMENT_BEGIN_NAMES], ";", segments[locus][ITEM_SEGMENT_END_NAMES])
 
 
 
@@ -132,7 +133,7 @@ if (args.cm_limit):
 
 
 required_chromosome = int(args.required_chromosome)
-deltas = dict()
+segments = dict()
 
 if (args.csv_file_path):
     print("reading csv file", args.csv_file_path, file=sys.stderr)
@@ -143,17 +144,17 @@ if (args.csv_file_path):
             if (header):
                 header = False
                 continue
-            calculate_deltas(row, required_chromosome, cm_limit, deltas)
+            register_segment(row, required_chromosome, cm_limit, segments)
 
-sum_deltas(deltas)
+calculate_number_of_matches(segments)
 
 if (args.plot_result or args.save_picture):
-    plot_result(deltas, required_chromosome)
+    plot_result(segments, required_chromosome)
     if (args.save_picture):
         plt.savefig(args.save_picture)
     else:
         plt.show()
 else:
-    print_result(deltas, required_chromosome, args.print_names)
+    print_result(segments, required_chromosome, args.print_names)
 
 
