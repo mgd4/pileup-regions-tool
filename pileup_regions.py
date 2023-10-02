@@ -95,7 +95,7 @@ def print_name_list(name_list, header):
 
 def print_result(deltas, chromosome, print_names):
     for locus in sorted(deltas):
-        print (str(locus) + ";" + str(deltas[locus][ITEM_RESULT]))
+        print (str(chromosome) + ";" + str(locus) + ";" + str(deltas[locus][ITEM_RESULT]))
         if (print_names):
             print_name_list(deltas[locus][ITEM_NAME_UP], "Begin of match:")
             print_name_list(deltas[locus][ITEM_NAME_DOWN], "End of match:")
